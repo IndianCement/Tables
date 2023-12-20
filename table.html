@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <script>
+    let tableStates = [];
+
+function initializeTables() {
+  const numTables = 20; // Change this to the actual number of tables
+  for (let i = 0; i < numTables; i++) {
+    tableStates[i] = {
+      isGreen: false,
+      stopwatch: null,
+    };
+  }
+}
+
+    function toggleTable(tableIndex) {
+      const tableState = tableStates[tableIndex];
+      const tableImage = document.getElementById(`tableImage${tableIndex}`);
+      const button = document.getElementById(`button${tableIndex}`);
+      const stopwatchElement = document.getElementById(`stopwatch${tableIndex}`);
+
+      if (tableState.isGreen) {
+        clearInterval(tableState.stopwatch);
+        stopwatchElement.innerText = '00:00:00';
+        tableImage.src = '1.png'; // Replace with your default image path
+        button.innerText = `Table ${tableIndex + 1}`;
+        tableState.isGreen = false;
+      } else {
+        let seconds = 0;
+        let minutes = 0;
+        let hours = 0;
+        tableState.stopwatch = setInterval(function () {
+          seconds++;
+          const hours = Math.floor(seconds / 3600);
+          const minutes = Math.floor((seconds % 3600) / 60);
+          const remainingSeconds = seconds % 60;
+          if (seconds <= 9) {
+            stopwatchElement.innerText = `${'0' + hours}:${'0' + minutes}:${'0'+ remainingSeconds}`;
+          }
+          if (seconds > 9) {
+            stopwatchElement.innerText = `${'0' + hours}:${'0' + minutes}:${remainingSeconds}`;
+                }
+          if (seconds > 59) {
+            minutes++;
+            stopwatchElement.innerText = `${'0' + hours}:${'0' + minutes}:${remainingSeconds}`;
+            seconds = 0;
+            stopwatchElement.innerText = `${'0' + hours}:${'0' + minutes}:${'0' + remainingSeconds}`;
+          }
+          if (minutes > 9){
+            stopwatchElement.innerText = `${'0' + hours}:${'0' + minutes}:${'0' + remainingSeconds}`;
+          } 
+          if (minutes > 59){
+            hours++;
+            stopwatchElement.innerText = `${'0' + hours}:${'0' + minutes}:${'0' + remainingSeconds}`;
+            minutes = 0;
+            stopwatchElement.innerText = `${'0' + hours}:${'0' + 0}:${'0' + remainingSeconds}`;
+          }
+        }, 1000);
+        tableImage.src = '2.png'; // Replace with your green image path
+        button.innerText = ` Table ${tableIndex + 1}`;
+        tableState.isGreen = true;
+      }
+
+      // Broadcast the table state to other instances
+      const channel = new BroadcastChannel('tableSyncChannel');
+      channel.postMessage({ tableIndex, isGreen: tableState.isGreen });
+    }
+
+    // Listen for updates from other instances
+    const channel = new BroadcastChannel('tableSyncChannel');
+    channel.onmessage = function (event) {
+      const { tableIndex, isGreen } = event.data;
+      const tableState = tableStates[tableIndex];
+      const tableImage = document.getElementById(`tableImage${tableIndex}`);
+      const button = document.getElementById(`button${tableIndex}`);
+      const stopwatchElement = document.getElementById(`stopwatch${tableIndex}`);
+
+      if (isGreen !== tableState.isGreen) {
+        if (isGreen) {
+          // Start stopwatch
+          let seconds = 0;
+          tableState.stopwatch = setInterval(function () {
+            seconds++;
+            const hours = Math.floor(seconds / 3600);
+            const minutes = Math.floor((seconds % 3600) / 60);
+            const remainingSeconds = seconds % 60;
+            stopwatchElement.innerText = `${hours}:${minutes}:${remainingSeconds}`;
+          }, 1000);
+          // Change image to the green version
+          tableImage.src = '2.png'; // Replace with your green image path
+          button.innerText = ` Table ${tableIndex + 1}`;
+        } else {
+          // Reset stopwatch
+          clearInterval(tableState.stopwatch);
+          stopwatchElement.innerText = '00:00:00';
+          // Change image back to default
+          tableImage.src = '1.png'; // Replace with your default image path
+          button.innerText = `Table ${tableIndex + 1}`;
+        }
+        tableState.isGreen = isGreen;
+      }
+    };
+  </script>
+  <style>
+    *{
+      margin: 0;
+      padding: 0;
+    }
+    .banner{
+    width: 100%;
+    height: 100%;
+    background-image: linear-gradient(rgba(0,0,0,0.75), rgba(0,0,0,0.75)),url(./blurred-busy-restaurant-background-free-photo.jpg);
+    background-position: center center;
+    background-size: cover;
+    background-repeat: no-repeat;
+    }
+    .tableContainer{
+      padding: 1rem;
+    max-width: 350px;
+    align-items: center;
+    text-align: center;
+    position: relative;
+    display: inline-block;
+    border-radius: 10px;
+    background-color: rgba(0,0,0,0.6);
+    }
+    .tableImage {
+    width: 231px;
+    height: 200px;
+    transition: background-color 0.5s ease;
+    }
+    .button{
+    width: 200px;
+    padding: 15px 0;
+    text-align: center;
+    margin: 20px 10px;
+    border-radius: 25px;
+    font-weight: bold;
+    border: 2px solid #009688;
+    background: transparent;
+    color: white;
+    cursor: pointer;
+    }
+    .stopwatch {
+    color: white;
+    font-size: 20px;
+    margin-top: 10px;
+    }
+    h1{
+      color: gray;
+      text-align: center;
+      margin-bottom: 1cm;
+      font-family: Arial, Helvetica, sans-serif;
+      font-size: 1.5cm;
+    }
+    </style>
+</head>
+<body onload="initializeTables()">
+    
+    <div class="banner">
+  
+  <div id="tablesContainer">
+    <!-- Create a 3x3 grid of tables -->
+    <div class="tableContainer">
+      <img id="tableImage0" class="tableImage" src="1.png" alt="Table Image">
+      <div id="stopwatch0" class="stopwatch">00:00:00</div>
+      <button id="button0" class="button" onclick="toggleTable(0)">Table 1</button>
+    </div>
+
+    <div class="tableContainer">
+      <img id="tableImage1" class="tableImage" src="1.png" alt="Table Image">
+      <div id="stopwatch1" class="stopwatch">00:00:00</div>
+      <button id="button1" class="button" onclick="toggleTable(1)">Table 2</button>
+    </div>
+
+    <div class="tableContainer">
+      <img id="tableImage2" class="tableImage" src="1.png" alt="Table Image">
+      <div id="stopwatch2" class="stopwatch">00:00:00</div>
+      <button id="button2" class="button" onclick="toggleTable(2)">Table 3</button>
+    </div>
+
+    <div class="tableContainer">
+      <img id="tableImage3" class="tableImage" src="1.png" alt="Table Image">
+      <div id="stopwatch3" class="stopwatch">00:00:00</div>
+      <button id="button3" class="button" onclick="toggleTable(3)">Table 4</button>
+    </div>
+
+    <div class="tableContainer">
+      <img id="tableImage4" class="tableImage" src="1.png" alt="Table Image">
+      <div id="stopwatch4" class="stopwatch">00:00:00</div>
+      <button id="button4" class="button" onclick="toggleTable(4)">Table 5</button>
+    </div>
+
+    <div class="tableContainer">
+      <img id="tableImage5" class="tableImage" src="1.png" alt="Table Image">
+      <div id="stopwatch5" class="stopwatch">00:00:00</div>
+      <button id="button5" class="button" onclick="toggleTable(5)">Table 6  </button>
+    </div>
+
+    <div class="tableContainer">
+      <img id="tableImage6" class="tableImage" src="1.png" alt="Table Image">
+      <div id="stopwatch6" class="stopwatch">00:00:00</div>
+      <button id="button6" class="button" onclick="toggleTable(6)">Table 7</button>
+    </div>
+
+    <div class="tableContainer">
+      <img id="tableImage7" class="tableImage" src="1.png" alt="Table Image">
+      <div id="stopwatch7" class="stopwatch">00:00:00</div>
+      <button id="button7" class="button" onclick="toggleTable(7)">Table 8</button>
+    </div>
+
+    <div class="tableContainer">
+      <img id="tableImage8" class="tableImage" src="1.png" alt="Table Image">
+      <div id="stopwatch8" class="stopwatch">00:00:00</div>
+      <button id="button8" class="button" onclick="toggleTable(8)">Table 9</button>
+    </div>
+
+    <div class="tableContainer">
+      <img id="tableImage9" class="tableImage" src="1.png" alt="Table Image">
+      <div id="stopwatch9" class="stopwatch">00:00:00</div>
+      <button id="button9" class="button" onclick="toggleTable(9)">Table 10</button>
+    </div>
+
+    <div class="tableContainer">
+      <img id="tableImage10" class="tableImage" src="1.png" alt="Table Image">
+      <div id="stopwatch10" class="stopwatch">00:00:00</div>
+      <button id="button10" class="button" onclick="toggleTable(10)">Table 11</button>
+    </div>
+
+    <div class="tableContainer">
+      <img id="tableImage11" class="tableImage" src="1.png" alt="Table Image">
+      <div id="stopwatch11" class="stopwatch">00:00:00</div>
+      <button id="button11" class="button" onclick="toggleTable(11)">Table 12  </button>
+    </div>
+
+    <div class="tableContainer">
+      <img id="tableImage12" class="tableImage" src="1.png" alt="Table Image">
+      <div id="stopwatch12" class="stopwatch">00:00:00</div>
+      <button id="button12" class="button" onclick="toggleTable(12)">Table 13</button>
+    </div>
+
+    <div class="tableContainer">
+      <img id="tableImage13" class="tableImage" src="1.png" alt="Table Image">
+      <div id="stopwatch13" class="stopwatch">00:00:00</div>
+      <button id="button13" class="button" onclick="toggleTable(13)">Table 14</button>
+    </div>
+
+    <div class="tableContainer">
+      <img id="tableImage14" class="tableImage" src="1.png" alt="Table Image">
+      <div id="stopwatch14" class="stopwatch">00:00:00</div>
+      <button id="button14" class="button" onclick="toggleTable(14)">Table 15</button>
+    </div>
+
+    <div class="tableContainer">
+      <img id="tableImage15" class="tableImage" src="1.png" alt="Table Image">
+      <div id="stopwatch15" class="stopwatch">00:00:00</div>
+      <button id="button15" class="button" onclick="toggleTable(15)">Table 16</button>
+    </div>
+
+    <div class="tableContainer">
+      <img id="tableImage15" class="tableImage" src="1.png" alt="Table Image">
+      <div id="stopwatch15" class="stopwatch">00:00:00</div>
+      <button id="button15" class="button" onclick="toggleTable(15)">Table 16</button>
+    </div>
+
+    <div class="tableContainer">
+      <img id="tableImage17" class="tableImage" src="1.png" alt="Table Image">
+      <div id="stopwatch17" class="stopwatch">00:00:00</div>
+      <button id="button17" class="button" onclick="toggleTable(17)">Table 18  </button>
+    </div>
+
+    <div class="tableContainer">
+      <img id="tableImage18" class="tableImage" src="1.png" alt="Table Image">
+      <div id="stopwatch18" class="stopwatch">00:00:00</div>
+      <button id="button18" class="button" onclick="toggleTable(18)">Table 19</button>
+    </div>
+
+    <div class="tableContainer">
+      <img id="tableImage19" class="tableImage" src="1.png" alt="Table Image">
+      <div id="stopwatch19" class="stopwatch">00:00:00</div>
+      <button id="button19" class="button" onclick="toggleTable(19)">Table 20</button>
+    </div>
+
+    <div class="tableContainer">
+      <img id="tableImage20" class="tableImage" src="1.png" alt="Table Image">
+      <div id="stopwatch20" class="stopwatch">00:00:00</div>
+      <button id="button20" class="button" onclick="toggleTable(20)">Table 21</button>
+    </div>
+
+    <div class="tableContainer">
+      <img id="tableImage21" class="tableImage" src="1.png" alt="Table Image">
+      <div id="stopwatch21" class="stopwatch">00:00:00</div>
+      <button id="button21" class="button" onclick="toggleTable(21)">Table 22</button>
+    </div>
+
+    <div class="tableContainer">
+      <img id="tableImage22" class="tableImage" src="1.png" alt="Table Image">
+      <div id="stopwatch22" class="stopwatch">00:00:00</div>
+      <button id="button22" class="button" onclick="toggleTable(22)">Table 23</button>
+    </div>
+
+    <div class="tableContainer">
+      <img id="tableImage23" class="tableImage" src="1.png" alt="Table Image">
+      <div id="stopwatch23" class="stopwatch">00:00:00</div>
+      <button id="button23" class="button" onclick="toggleTable(23)">Table 24  </button>
+    </div>
+
+    <div class="tableContainer">
+      <img id="tableImage24" class="tableImage" src="1.png" alt="Table Image">
+      <div id="stopwatch24" class="stopwatch">00:00:00</div>
+      <button id="button24" class="button" onclick="toggleTable(24)">Table 25  </button>
+    </div>
+
+
+    <!-- Repeat the above block for the remaining rows (3-8) -->
+
+  </div>
+  </div>
+
+</body>
+</html>
